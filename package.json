@@ -1,0 +1,26 @@
+{
+  "name": "dharmaservicedesk",
+  "version": "1.0.0",
+  "private": false,
+  "license": "MIT",
+  "description": "Open source service desk with configurable ITSM workflows and HIPAA technical safeguards for PHI.",
+  "scripts": {
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start"
+  },
+  "dependencies": {
+    "next": "^16.3.6",
+    "react": "^19.1.1",
+    "react-dom": "^19.1.1"
+  },
+  "devDependencies": {
+    "@types/node": "20.14.10",
+    "@types/react": "^19.1.8",
+    "@types/react-dom": "^19.1.6",
+    "typescript": "5.5.4"
+  },
+  "engines": {
+    "node": ">=20"
+  }
+}

@@ -1,0 +1,10 @@
+node_modules
+.next
+data/*
+!data/.gitkeep
+tsconfig.tsbuildinfo
+.env
+.env.*
+!.env.example
+*.log
+phi.key

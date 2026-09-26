@@ -1,0 +1,36 @@
+export interface PublicTicket {
+  id: string;
+  number: string;
+  type: "incident" | "problem" | "change" | "request";
+  title: string;
+  description: string;
+  state: string;
+  priority: string;
+  impact: "high" | "medium" | "low";
+  urgency: "high" | "medium" | "low";
+  category: string;
+  channel: string;
+  assignmentGroupId: string;
+  assignmentGroupName: string;
+  assigneeId: string;
+  assigneeName: string;
+  requesterId: string;
+  requesterName: string;
+  cmdbId: string;
+  knowledgeId: string;
+  relatedIds: string[];
+  changeRisk: string;
+  windowStart: string;
+  windowEnd: string;
+  approvalStatus: string;
+  approvalComment: string;
+  custom: Record<string, string>;
+  phi: { present: boolean; purpose: string; fields: string[] };
+  responseDue: string;
+  resolveDue: string;
+  sla: { responseBreached: boolean; resolveBreached: boolean };
+  integrity: "ok" | "mismatch";
+  createdAt: string;
+  updatedAt: string;
+  activities: { id: string; kind: string; body: string; authorName: string; createdAt: string }[];
+}
