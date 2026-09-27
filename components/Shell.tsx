@@ -131,8 +131,11 @@ export function Shell({ children }: { children: React.ReactNode }) {
       <div className="shell" style={{ ["--accent" as string]: data.settings.accent }}>
         <aside className="sidebar">
           <div className="brand">
-            <strong>Dharma</strong>
-            <span>Service desk</span>
+            <span className="brand-mark" aria-hidden="true">D</span>
+            <div>
+              <strong>Dharma</strong>
+              <span>Service desk</span>
+            </div>
           </div>
           <nav className="nav">
             {links.filter(Boolean).map((link) => (

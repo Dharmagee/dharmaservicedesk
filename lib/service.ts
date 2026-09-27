@@ -34,6 +34,7 @@ import type {
   User,
 } from "./types";
 import { PHI_PURPOSES } from "./types";
+import { buildXlsx } from "./xlsx";
 
 const dataDir = path.join(process.cwd(), "data");
 const dbPath = path.join(dataDir, "db.json");
@@ -65,23 +66,39 @@ function policyVersion(text: string): string {
   return sha256(text);
 }
 
-function persist(db: Database) {
+const DEMO_PASSWORD_HASH = "scrypt$C+7cqHcjR0y5BRwcWBM8/w==$lo0eRFXxrb7Z0ohjD1Xtv0UBtxko9Lpxxcp5jsfzDEQ=";
+
+async function deskKv(): Promise<{ get(key: string): Promise<string | null>; put(key: string, value: string): Promise<void> } | null> {
+  if (typeof navigator === "undefined" || navigator.userAgent !== "Cloudflare-Workers") return null;
+  const { getCloudflareContext } = await import("@opennextjs/cloudflare");
+  const { env } = await getCloudflareContext({ async: true });
+  const kv = (env as { DESK_DATA?: { get(key: string): Promise<string | null>; put(key: string, value: string): Promise<void> } }).DESK_DATA;
+  return kv ?? null;
+}
+
+async function persist(db: Database) {
+  const body = JSON.stringify(db);
+  const kv = await deskKv();
+  if (kv) {
+    await kv.put("db", body);
+    return;
+  }
   fs.mkdirSync(dataDir, { recursive: true });
   const tmp = `${dbPath}.tmp`;
-  fs.writeFileSync(tmp, JSON.stringify(db, null, 2), "utf8");
+  fs.writeFileSync(tmp, body, "utf8");
   fs.renameSync(tmp, dbPath);
 }
 
 function exclusive<T>(fn: (db: Database) => { result: T; save: boolean }): Promise<T> {
-  const run = queue.then(() => {
+  const run = queue.then(async () => {
     phiKey();
-    const db = load();
+    const db = await load();
     try {
       const out = fn(db);
-      if (out.save) persist(db);
+      if (out.save) await persist(db);
       return out.result;
     } catch (error) {
-      if (error instanceof ApiError && error.save) persist(db);
+      if (error instanceof ApiError && error.save) await persist(db);
       throw error;
     }
   });
@@ -92,10 +109,20 @@ function exclusive<T>(fn: (db: Database) => { result: T; save: boolean }): Promi
   return run;
 }
 
-function load(): Database {
+async function load(): Promise<Database> {
+  const kv = await deskKv();
+  if (kv) {
+    const raw = await kv.get("db");
+    if (!raw) {
+      const seeded = seed();
+      await persist(seeded);
+      return seeded;
+    }
+    return JSON.parse(raw) as Database;
+  }
   if (!fs.existsSync(dbPath)) {
     const seeded = seed();
-    persist(seeded);
+    await persist(seeded);
     return seeded;
   }
   return JSON.parse(fs.readFileSync(dbPath, "utf8")) as Database;
@@ -645,32 +672,101 @@ function assertPassword(password: string) {
   }
 }
 
+function queryTickets(db: Database, user: User, perms: string[], query: URLSearchParams): Ticket[] {
+  const type = clean(query.get("type"), 20) as TicketType;
+  let rows = db.tickets.filter((ticket) => canSeeTicket(perms, user, ticket));
+  if (type) rows = rows.filter((ticket) => ticket.type === type);
+  const state = clean(query.get("state"), 40);
+  const priority = clean(query.get("priority"), 40);
+  const group = clean(query.get("group"), 40);
+  const q = clean(query.get("q"), 80).toLowerCase();
+  const mine = query.get("mine") === "1";
+  const breached = query.get("breached") === "1";
+  if (state) rows = rows.filter((ticket) => ticket.state === state);
+  if (priority) rows = rows.filter((ticket) => ticket.priority === priority);
+  if (group) rows = rows.filter((ticket) => ticket.assignmentGroupId === group);
+  if (mine) rows = rows.filter((ticket) => ticket.assigneeId === user.id || ticket.requesterId === user.id);
+  if (q) {
+    rows = rows.filter((ticket) =>
+      `${ticket.number} ${ticket.title} ${ticket.description} ${ticket.category}`.toLowerCase().includes(q),
+    );
+  }
+  if (breached) rows = rows.filter((ticket) => slaView(db.settings, ticket).resolveBreached || slaView(db.settings, ticket).responseBreached);
+  rows.sort((a, b) => b.updatedAt.localeCompare(a.updatedAt));
+  return rows;
+}
+
 export function listTickets(token: string | undefined, query: URLSearchParams) {
   return exclusive((db) => {
     const { user, perms } = requireSession(db, token);
-    const type = clean(query.get("type"), 20) as TicketType;
-    let rows = db.tickets.filter((ticket) => canSeeTicket(perms, user, ticket));
-    if (type) rows = rows.filter((ticket) => ticket.type === type);
-    const state = clean(query.get("state"), 40);
-    const priority = clean(query.get("priority"), 40);
-    const group = clean(query.get("group"), 40);
-    const q = clean(query.get("q"), 80).toLowerCase();
-    const mine = query.get("mine") === "1";
-    const breached = query.get("breached") === "1";
-    if (state) rows = rows.filter((ticket) => ticket.state === state);
-    if (priority) rows = rows.filter((ticket) => ticket.priority === priority);
-    if (group) rows = rows.filter((ticket) => ticket.assignmentGroupId === group);
-    if (mine) rows = rows.filter((ticket) => ticket.assigneeId === user.id || ticket.requesterId === user.id);
-    if (q) {
-      rows = rows.filter((ticket) =>
-        `${ticket.number} ${ticket.title} ${ticket.description} ${ticket.category}`.toLowerCase().includes(q),
-      );
-    }
-    if (breached) rows = rows.filter((ticket) => slaView(db.settings, ticket).resolveBreached || slaView(db.settings, ticket).responseBreached);
-    rows.sort((a, b) => b.updatedAt.localeCompare(a.updatedAt));
+    const rows = queryTickets(db, user, perms, query);
     return {
       save: touchSave(db, token),
       result: { tickets: rows.slice(0, 200).map((ticket) => publicTicket(db, ticket, false)) },
+    };
+  });
+}
+
+export function exportIncidents(token: string | undefined, query: URLSearchParams) {
+  return exclusive((db) => {
+    const { user, perms } = requireSession(db, token);
+    if (!allowed(perms, "ticket.read") && !allowed(perms, "*")) throw new ApiError(403, "You cannot export incidents.");
+    const scoped = new URLSearchParams(query);
+    scoped.set("type", "incident");
+    const rows = queryTickets(db, user, perms, scoped);
+    appendAudit(db, user, "incident.export", "incidents", `Exported ${rows.length} incident records`);
+    const headers = [
+      "Number",
+      "Title",
+      "Description",
+      "State",
+      "Priority",
+      "Impact",
+      "Urgency",
+      "Category",
+      "Channel",
+      "Assignment group",
+      "Assignee",
+      "Requester",
+      "PHI on record",
+      "SLA",
+      "Response due",
+      "Resolve due",
+      "Created",
+      "Updated",
+    ];
+    const data = rows.map((ticket) => {
+      const sla = slaView(db.settings, ticket);
+      const state = db.settings.states.incident?.find((item) => item.id === ticket.state)?.label || ticket.state;
+      const priority = db.settings.priorities.find((item) => item.id === ticket.priority)?.label || ticket.priority;
+      return [
+        ticket.number,
+        ticket.title,
+        ticket.description,
+        state,
+        priority,
+        ticket.impact,
+        ticket.urgency,
+        ticket.category,
+        ticket.channel,
+        groupName(db, ticket.assignmentGroupId),
+        ticket.assigneeId ? userName(db, ticket.assigneeId) : "",
+        userName(db, ticket.requesterId),
+        ticket.phi.present ? "Yes" : "No",
+        sla.resolveBreached || sla.responseBreached ? "Breached" : "On track",
+        ticket.responseDue,
+        ticket.resolveDue,
+        ticket.createdAt,
+        ticket.updatedAt,
+      ];
+    });
+    const day = new Date().toISOString().slice(0, 10);
+    return {
+      save: true,
+      result: {
+        bytes: buildXlsx("Incidents", headers, data),
+        filename: `incidents-${day}.xlsx`,
+      },
     };
   });
 }
@@ -1465,7 +1561,7 @@ function user(id: string, name: string, email: string, roleIds: string[], groupI
     id,
     name,
     email,
-    passwordHash: hashPassword(DEMO_PASSWORD),
+    passwordHash: DEMO_PASSWORD_HASH,
     roleIds,
     groupIds,
     active: true,

@@ -20,6 +20,7 @@ export function TicketQueue({ type }: { type: TicketType }) {
   const [mine, setMine] = useState(false);
   const [open, setOpen] = useState(false);
   const [error, setError] = useState("");
+  const [exporting, setExporting] = useState(false);
   const [form, setForm] = useState({
     title: "",
     description: "",
@@ -36,14 +37,42 @@ export function TicketQueue({ type }: { type: TicketType }) {
     windowEnd: "",
   });
 
-  function load() {
+  function filters() {
     const params = new URLSearchParams({ type });
     if (q) params.set("q", q);
     if (state) params.set("state", state);
     if (priority) params.set("priority", priority);
     const seesAll = can(session.user.permissions, "ticket.update") || can(session.user.permissions, "audit.read");
     if (mine || !seesAll) params.set("mine", "1");
-    api<{ tickets: PublicTicket[] }>(`/api/tickets?${params.toString()}`).then((data) => setTickets(data.tickets)).catch((err) => setError(err.message));
+    return params;
+  }
+
+  function load() {
+    api<{ tickets: PublicTicket[] }>(`/api/tickets?${filters().toString()}`).then((data) => setTickets(data.tickets)).catch((err) => setError(err.message));
+  }
+
+  async function exportExcel() {
+    setError("");
+    setExporting(true);
+    try {
+      const response = await fetch(`/api/tickets/export?${filters().toString()}`);
+      if (!response.ok) {
+        const data = await response.json().catch(() => ({}));
+        throw new Error(data.error || "Could not export incidents");
+      }
+      const blob = await response.blob();
+      const url = URL.createObjectURL(blob);
+      const anchor = document.createElement("a");
+      const match = (response.headers.get("Content-Disposition") || "").match(/filename="([^"]+)"/);
+      anchor.href = url;
+      anchor.download = match?.[1] || "incidents.xlsx";
+      anchor.click();
+      URL.revokeObjectURL(url);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Could not export incidents");
+    } finally {
+      setExporting(false);
+    }
   }
 
   useEffect(() => {
@@ -83,7 +112,14 @@ export function TicketQueue({ type }: { type: TicketType }) {
           <h1>{TYPE_LABEL[type]}</h1>
           <p className="note">{session.settings.orgName}</p>
         </div>
-        {can(session.user.permissions, "ticket.create") ? <button className="btn" onClick={() => setOpen(true)}>New {type}</button> : null}
+        <div className="row-actions">
+          {type === "incident" ? (
+            <button className="btn secondary" type="button" onClick={exportExcel} disabled={exporting}>
+              {exporting ? "Exporting…" : "Export to Excel"}
+            </button>
+          ) : null}
+          {can(session.user.permissions, "ticket.create") ? <button className="btn" onClick={() => setOpen(true)}>New {type}</button> : null}
+        </div>
       </div>
       {error ? <div className="error" style={{ marginBottom: 12 }}>{error}</div> : null}
       <div className="filters">

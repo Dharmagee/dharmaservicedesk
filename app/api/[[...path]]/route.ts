@@ -70,6 +70,16 @@ async function run(request: Request, context: { params: Promise<{ path?: string[
     if (key === "GET session") return json(await desk.session(token));
     if (key === "POST auth/acknowledge") return json(await desk.acknowledge(token));
     if (key === "POST account/password") return json(await desk.changePassword(token, body.current, body.next));
+    if (key === "GET tickets/export") {
+      const file = await desk.exportIncidents(token, url.searchParams);
+      return new NextResponse(new Uint8Array(file.bytes), {
+        headers: {
+          "Content-Type": "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+          "Content-Disposition": `attachment; filename="${file.filename}"`,
+          "Cache-Control": "no-store",
+        },
+      });
+    }
     if (key === "GET tickets") return json(await desk.listTickets(token, url.searchParams));
     if (method === "POST" && parts[0] === "tickets" && parts.length === 1) return json(await desk.createTicket(token, body));
     if (method === "GET" && parts[0] === "tickets" && parts.length === 2) return json(await desk.getTicket(token, parts[1]));

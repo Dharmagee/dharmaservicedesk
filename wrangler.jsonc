@@ -1,0 +1,23 @@
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "dharmaservicedesk",
+  "main": ".open-next/worker.js",
+  "compatibility_date": "2026-09-26",
+  "compatibility_flags": ["nodejs_compat", "global_fetch_strictly_public"],
+  "assets": {
+    "directory": ".open-next/assets",
+    "binding": "ASSETS"
+  },
+  "services": [
+    {
+      "binding": "WORKER_SELF_REFERENCE",
+      "service": "dharmaservicedesk"
+    }
+  ],
+  "kv_namespaces": [
+    {
+      "binding": "DESK_DATA",
+      "id": "79ea2b4c22a34baaad0cae749a99b92a"
+    }
+  ]
+}

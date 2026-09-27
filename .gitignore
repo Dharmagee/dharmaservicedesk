@@ -8,3 +8,6 @@ tsconfig.tsbuildinfo
 !.env.example
 *.log
 phi.key
+.open-next
+.wrangler
+.dev.vars
