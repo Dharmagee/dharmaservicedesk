@@ -45,18 +45,24 @@ button { cursor: pointer; }
     var(--paper);
 }
 .login-story {
-  color: var(--ink);
-  padding: 64px 72px;
+  margin: 20px;
+  border-radius: 28px;
+  padding: 48px 52px;
   display: flex;
   flex-direction: column;
   justify-content: space-between;
+  color: #f8fafc;
+  background:
+    radial-gradient(420px 240px at 0% 0%, rgba(255, 255, 255, 0.18), transparent 60%),
+    linear-gradient(160deg, #0f766e 0%, #115e59 42%, #1e3a8a 100%);
+  box-shadow: var(--shadow);
 }
 .eyebrow {
   letter-spacing: 0.14em;
   text-transform: uppercase;
   font-size: 11px;
   font-weight: 650;
-  color: var(--accent-ink);
+  color: #99f6e4;
 }
 .login-story h1 {
   font-family: var(--serif);
@@ -66,15 +72,16 @@ button { cursor: pointer; }
   letter-spacing: -0.045em;
   margin: 16px 0;
   max-width: 12ch;
+  color: white;
 }
-.login-story p { max-width: 42ch; font-size: 17px; line-height: 1.55; color: var(--ink-soft); }
+.login-story p { max-width: 42ch; font-size: 17px; line-height: 1.55; color: rgba(248, 250, 252, 0.86); }
 .story-points { display: grid; gap: 0; margin-top: 40px; max-width: 460px; }
 .story-points div {
-  border-top: 1px solid var(--line);
+  border-top: 1px solid rgba(255, 255, 255, 0.22);
   padding: 14px 0;
-  color: var(--ink-soft);
+  color: rgba(248, 250, 252, 0.82);
 }
-.story-points strong { display: block; margin-bottom: 4px; color: var(--ink); font-weight: 620; }
+.story-points strong { display: block; margin-bottom: 4px; color: white; font-weight: 620; }
 .login-panel { display: grid; place-items: center; padding: 32px; }
 .login-card {
   width: min(420px, 100%);
@@ -271,6 +278,45 @@ input:focus, select:focus, textarea:focus {
 a.card:hover { transform: translateY(-1px); box-shadow: 0 1px 2px rgba(16, 24, 40, 0.04), 0 16px 36px rgba(16, 24, 40, 0.08); }
 .card a { text-decoration: none; }
 .card .count { font-family: var(--serif); font-size: 34px; margin: 8px 0 0; font-weight: 620; letter-spacing: -0.04em; }
+.dash-card { position: relative; overflow: hidden; padding-left: 20px; }
+.dash-card::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  width: 5px;
+}
+.home-page {
+  background:
+    radial-gradient(640px 240px at 0% 0%, rgba(15, 118, 110, 0.16), transparent 70%),
+    radial-gradient(520px 220px at 100% 0%, rgba(30, 58, 138, 0.12), transparent 68%);
+}
+.dash-card .muted { font-weight: 700; }
+.dash-card.tone-incident { background: #ccfbf1; border-color: #5eead4; }
+.dash-card.tone-incident::before { background: #0f766e; }
+.dash-card.tone-incident .muted, .dash-card.tone-incident .count { color: #115e59; }
+.dash-card.tone-problem { background: #ffedd5; border-color: #fdba74; }
+.dash-card.tone-problem::before { background: #c2410c; }
+.dash-card.tone-problem .muted, .dash-card.tone-problem .count { color: #9a3412; }
+.dash-card.tone-change { background: #dbeafe; border-color: #93c5fd; }
+.dash-card.tone-change::before { background: #1d4ed8; }
+.dash-card.tone-change .muted, .dash-card.tone-change .count { color: #1e3a8a; }
+.dash-card.tone-request { background: #dcfce7; border-color: #86efac; }
+.dash-card.tone-request::before { background: #15803d; }
+.dash-card.tone-request .muted, .dash-card.tone-request .count { color: #166534; }
+.dash-card.tone-breach { background: #fee2e2; border-color: #fca5a5; }
+.dash-card.tone-breach::before { background: #b42318; }
+.dash-card.tone-breach .muted, .dash-card.tone-breach .count { color: #991b1b; }
+.dash-card.tone-approval { background: #fef3c7; border-color: #fcd34d; }
+.dash-card.tone-approval::before { background: #b45309; }
+.dash-card.tone-approval .muted, .dash-card.tone-approval .count { color: #92400e; }
+.dash-card.tone-phi { background: #ede9fe; border-color: #c4b5fd; }
+.dash-card.tone-phi::before { background: #6d28d9; }
+.dash-card.tone-phi .muted, .dash-card.tone-phi .count { color: #5b21b6; }
+.dash-card.tone-glass { background: #fce7f3; border-color: #f9a8d4; }
+.dash-card.tone-glass::before { background: #be185d; }
+.dash-card.tone-glass .muted, .dash-card.tone-glass .count { color: #9d174d; }
 .table-wrap {
   overflow: auto;
   border: 1px solid var(--line);
@@ -372,7 +418,7 @@ tr.clickable:hover { background: #f7fbfb; }
 
 @media (max-width: 980px) {
   .login-screen, .shell { display: block; }
-  .login-story { padding: 32px 24px 8px; }
+  .login-story { margin: 12px; padding: 28px 22px; }
   .login-story h1 { font-size: 40px; }
   .sidebar {
     flex-direction: row;

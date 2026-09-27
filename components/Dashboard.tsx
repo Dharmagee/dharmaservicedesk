@@ -45,15 +45,15 @@ export function Dashboard() {
     );
   }
 
-  const cards: { label: string; count: number | string; href: string }[] = [
-    { label: "Incidents", count: report?.open.incident ?? "–", href: "/desk/incidents" },
-    { label: "Problems", count: report?.open.problem ?? "–", href: "/desk/problems" },
-    { label: "Changes", count: report?.open.change ?? "–", href: "/desk/changes" },
-    { label: "Requests", count: report?.open.request ?? "–", href: "/desk/requests" },
+  const cards: { label: string; count: number | string; href: string; tone: string }[] = [
+    { label: "Incidents", count: report?.open.incident ?? "–", href: "/desk/incidents", tone: "incident" },
+    { label: "Problems", count: report?.open.problem ?? "–", href: "/desk/problems", tone: "problem" },
+    { label: "Changes", count: report?.open.change ?? "–", href: "/desk/changes", tone: "change" },
+    { label: "Requests", count: report?.open.request ?? "–", href: "/desk/requests", tone: "request" },
   ];
 
   return (
-    <main className="page">
+    <main className="page home-page">
       <div className="page-head">
         <div>
           <h1>{session.settings.orgName}</h1>
@@ -62,17 +62,17 @@ export function Dashboard() {
       </div>
       <div className="cards">
         {cards.map((card) => (
-          <Link key={card.label} className="card" href={card.href}>
+          <Link key={card.label} className={`card dash-card tone-${card.tone}`} href={card.href}>
             <div className="muted">{card.label}</div>
             <div className="count">{card.count}</div>
           </Link>
         ))}
       </div>
-      <div className="cards" style={{ marginTop: 12 }}>
-        <div className="card"><div className="muted">SLA breaches</div><div className="count">{report?.breaches ?? "–"}</div></div>
-        <div className="card"><div className="muted">Approvals waiting</div><div className="count">{report?.pendingApprovals ?? "–"}</div></div>
-        <div className="card"><div className="muted">PHI opens, 30 days</div><div className="count">{report?.phiReveals ?? "–"}</div></div>
-        <div className="card"><div className="muted">Break-the-glass</div><div className="count">{report?.breakGlass ?? "–"}</div></div>
+      <div className="cards">
+        <div className="card dash-card tone-breach"><div className="muted">SLA breaches</div><div className="count">{report?.breaches ?? "–"}</div></div>
+        <div className="card dash-card tone-approval"><div className="muted">Approvals waiting</div><div className="count">{report?.pendingApprovals ?? "–"}</div></div>
+        <div className="card dash-card tone-phi"><div className="muted">PHI opens, 30 days</div><div className="count">{report?.phiReveals ?? "–"}</div></div>
+        <div className="card dash-card tone-glass"><div className="muted">Break-the-glass</div><div className="count">{report?.breakGlass ?? "–"}</div></div>
       </div>
     </main>
   );
